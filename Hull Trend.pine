@@ -1,0 +1,63 @@
+//@version=6
+indicator("Hull Trend Strong Confirmation", overlay=true, shorttitle="HMA Trend+")
+
+// ————— Original Hull Trend Code ————— Adapted from Jaggedsoft
+length = input.int(24, "Length")
+src = input(hl2, "Source")
+showcross = input.bool(true, "Show cross over/under")
+
+hma(_src, _length) =>
+    ta.wma(2 * ta.wma(_src, _length / 2) - ta.wma(_src, _length), math.round(math.sqrt(_length)))
+    
+hma3(_src, _length) =>
+    p = _length / 2
+    ta.wma(ta.wma(_src, p/3)*3 - ta.wma(_src, p/2) - ta.wma(_src, p), p)
+
+a = hma(src, length)
+b = hma3(src, length)
+c = b > a ? color.lime : color.red
+p1 = plot(a, color=color.new(c, 75), linewidth=1)
+p2 = plot(b, color=color.new(c, 75), linewidth=1)
+fill(p1, p2, color=color.new(c, 55))
+
+crossdn = a > b and a[1] < b[1]
+crossup = b > a and b[1] < a[1]
+plotshape(showcross and crossdn ? a : na, location=location.absolute, style=shape.labeldown, color=color.red, size=size.tiny, text="Sell", textcolor=color.white, offset=-1)
+plotshape(showcross and crossup ? a : na, location=location.absolute, style=shape.labelup, color=color.green, size=size.tiny, text="Buy", textcolor=color.white, offset=-1)
+
+// ————— Configurable Strong Confirmation —————
+strongSettings = input.bool(true, "══════ Strong Signal Settings ══════", group="Strong Confirmation")
+strongLength = input.int(60, "Length", minval=10, maxval=200, group="Strong Confirmation")
+showStrong = input.bool(true, "Show Signals", group="Strong Confirmation")
+strongBullColor = input.color(color.green, "Bullish Color", group="Strong Confirmation")
+strongBearColor = input.color(color.red, "Bearish Color", group="Strong Confirmation")
+showStrongText = input.bool(true, "Show Text Label", group="Strong Confirmation")
+
+// Strong signal calculations
+a_strong = hma(src, strongLength)
+b_strong = hma3(src, strongLength)
+
+strongCrossUp = ta.crossover(b_strong, a_strong)
+strongCrossDn = ta.crossunder(b_strong, a_strong)
+
+// Plot with text when enabled
+plotshape(showStrong and strongCrossUp and showStrongText, style=shape.triangleup, location=location.belowbar, 
+         color=strongBullColor, size=size.small, 
+         text="STRONG", 
+         textcolor=color.white, offset=0)
+    
+plotshape(showStrong and strongCrossDn and showStrongText, style=shape.triangledown, location=location.abovebar, 
+         color=strongBearColor, size=size.small, 
+         text="STRONG", 
+         textcolor=color.white, offset=0)
+
+// Plot without text when disabled
+plotshape(showStrong and strongCrossUp and not showStrongText, style=shape.triangleup, location=location.belowbar, 
+         color=strongBullColor, size=size.small, 
+         text="", 
+         textcolor=color.white, offset=0)
+    
+plotshape(showStrong and strongCrossDn and not showStrongText, style=shape.triangledown, location=location.abovebar, 
+         color=strongBearColor, size=size.small, 
+         text="", 
+         textcolor=color.white, offset=0)
