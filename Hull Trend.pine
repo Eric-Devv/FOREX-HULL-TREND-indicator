@@ -1,5 +1,5 @@
 //@version=6
-strategy("Universal HMA Strategy (FX, Crypto, Stocks)", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+strategy("Universal HMA Strategy (FX, Crypto, Stocks) with Pre-alerts", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
 
 // ——— INPUTS ———
 hmaLength = input.int(24, "HMA Length")
@@ -59,14 +59,37 @@ if (shortCondition)
     strategy.entry("Short", strategy.short)
     strategy.exit("Short Exit", from_entry="Short", stop=slShort, limit=tpShort)
 
+// ——— PRE-ALERTS (Adjusting for Timeframes) ———
+
+// Calculate remaining time in seconds for the current bar
+remainingTime = (time[1] - time) / 1000
+
+// Time thresholds in seconds (e.g., alert 30 seconds before the next signal)
+alertThreshold = 30 // seconds (can be adjusted)
+
+// If the remaining time is less than the alert threshold, trigger the alert
+upcomingLongCondition = crossUp[1] and strongUp[1] and rsiLong[1]
+upcomingShortCondition = crossDn[1] and strongDn[1] and rsiShort[1]
+
+if (remainingTime <= alertThreshold and upcomingLongCondition)
+    alert("Long entry expected in " + str.tostring(remainingTime) + " seconds!", alert.freq_once_per_bar)
+
+if (remainingTime <= alertThreshold and upcomingShortCondition)
+    alert("Short entry expected in " + str.tostring(remainingTime) + " seconds!", alert.freq_once_per_bar)
+
 // ——— PLOTS ———
 plotshape(longCondition, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny, title="Buy Signal")
 plotshape(shortCondition, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny, title="Sell Signal")
 
 // ——— ALERTS ———
-alertcondition(longCondition, title="Long Entry", message="Long entry signal on {{ticker}}")
-alertcondition(shortCondition, title="Short Entry", message="Short entry signal on {{ticker}}")
-alertcondition(close >= tpLong, title="TP Long Hit", message="Take profit hit on Long")
-alertcondition(close <= slLong, title="SL Long Hit", message="Stop loss hit on Long")
-alertcondition(close <= tpShort, title="TP Short Hit", message="Take profit hit on Short")
-alertcondition(close >= slShort, title="SL Short Hit", message="Stop loss hit on Short")
+if (close >= tpLong)
+    alert("TP Long Hit", alert.freq_once_per_bar)
+
+if (close <= slLong)
+    alert("SL Long Hit", alert.freq_once_per_bar)
+
+if (close <= tpShort)
+    alert("TP Short Hit", alert.freq_once_per_bar)
+
+if (close >= slShort)
+    alert("SL Short Hit", alert.freq_once_per_bar)
